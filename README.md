@@ -1,3 +1,4 @@
+
 # 📻 余烬电台 EMBER RADIO · AI 助手技能包
 
 简体中文 ｜ [English](#-ember-radio--ai-assistant-skill-pack)
@@ -11,6 +12,11 @@
 > 电网死了，互联网死了。你在避难所里醒来，收音机里有人在说话。
 >
 > 每日开放进入 20—30 名幸存者，共享同一座废土城市：自由行动、用电台和公共物资箱彼此连接。所有判定在服务端完成，LLM 只负责把你的故事讲好。
+
+
+<img width="1024" height="1024" alt="Gemini_Generated_Image_1n6p6i1n6p6i1n6p" src="https://github.com/user-attachments/assets/e7b28036-6c53-4646-a34b-bd09f91b09ae" />
+
+
 
 ## 这是什么仓库
 
@@ -73,8 +79,29 @@
 
 ### 两种开始方式
 
-1. **官网指令（推荐）**：打开 [game.wwzu.com](https://game.wwzu.com) → 「调频接入」→ 写下你的呼号 → 复制接入指令发给你的 AI 助手。指令里已带上技能包地址，助手拿到就能自己安装，你不用下载任何东西。
-2. **直接用本仓库**：Clone 或 Download ZIP → 把整个文件夹放进你的 AI 助手的技能目录 → 对助手说「**进入余烬电台**」。
+**方式一 · 复制接入指令（推荐，零下载）**——把下面任意一句整段复制，发给你的 AI 助手（DSH、WorkBuddy、OpenClaw、Octop 等均可）。指令里已带上技能包地址，助手拿到就能自己下载安装，你不用手动下载任何东西。
+
+还没想好呼号？直接发这句，助手会先问你：
+
+```text
+进入余烬电台。我是新幸存者，还没起呼号。
+请先下载并安装技能包（zip；若你的平台无法自动安装，提示我手动导入）：
+https://game.wwzu.com/downloads/ember-radio-skill-1.7.0.zip
+装好后先问我想用的呼号，再为我注册并开始，让我收听序章。
+```
+
+已经想好呼号？替换「你的呼号」再发：
+
+```text
+进入余烬电台。我是新幸存者，呼号「你的呼号」。
+请先下载并安装技能包（zip；若你的平台无法自动安装，提示我手动导入）：
+https://game.wwzu.com/downloads/ember-radio-skill-1.7.0.zip
+装好后按技能说明：用呼号「你的呼号」为我注册并开始，让我收听序章，把选项原样列给我。
+```
+
+> 想要一个本地特色呼号？官网 [game.wwzu.com](https://game.wwzu.com)「调频接入」区可以一键随机生成后组装同样的话术。
+
+**方式二 · 直接用本仓库**：Clone 或 Download ZIP → 把整个文件夹放进你的 AI 助手的技能目录 → 对助手说「**进入余烬电台**」。
 
 ### 第一次会话
 
@@ -187,8 +214,29 @@ Main story, six chapters (coming soon).
 
 ### Two ways to start
 
-1. **Via the official site (recommended)**: open [game.wwzu.com](https://game.wwzu.com) → the "join" section → pick a callsign → copy the access command and send it to your AI assistant. The command already carries the skill-pack URL, so the assistant installs it by itself — no manual download needed.
-2. **From this repository**: Clone or Download ZIP → put the whole folder into your assistant's skill directory → tell your assistant: "**Enter Ember Radio**" (进入余烬电台).
+**Option 1 · Copy the access command (recommended, zero downloads)** — copy either block below in full and send it to your AI assistant (DSH, WorkBuddy, OpenClaw, Octop, and more). It carries the skill-pack URL, so the assistant downloads and installs it by itself — nothing for you to download manually.
+
+Haven't picked a callsign yet? Send this as-is — the assistant will ask you first:
+
+```text
+Enter Ember Radio. I'm a new survivor and haven't picked a callsign yet.
+First, download and install the skill pack (zip; if your platform can't install it automatically, ask me to import it manually):
+https://game.wwzu.com/downloads/ember-radio-skill-1.7.0.zip
+Once installed, follow the skill instructions: ask me for my callsign, register me with it, and start the game — let me listen to the prologue.
+```
+
+Already have a callsign in mind? Replace `YOUR-CALLSIGN` and send:
+
+```text
+Enter Ember Radio. I'm a new survivor. My callsign is YOUR-CALLSIGN.
+First, download and install the skill pack (zip; if your platform can't install it automatically, ask me to import it manually):
+https://game.wwzu.com/downloads/ember-radio-skill-1.7.0.zip
+Once installed, follow the skill instructions: register me with the callsign YOUR-CALLSIGN, start the game, let me listen to the prologue, and list the options for me.
+```
+
+> The official site's [join section](https://game.wwzu.com) generates the original Chinese version of this command, with a random local-flavored callsign — either language works. Note the game world itself is written in Chinese (see the language note below).
+
+**Option 2 · From this repository**: Clone or Download ZIP → put the whole folder into your assistant's skill directory → tell your assistant: "**Enter Ember Radio**" (进入余烬电台).
 
 ### Your first session
 
