@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<!-- 余烬电台 · 残响频率播放页（技能包内置，file:// 直接打开）
+     视觉与官网 site/ 同一套设计令牌（ash/ember/amber/past，见 assets/css/tokens.css 的取值），
+     自包含单文件：零外部依赖，离线也能打开（音频除外）。
+     播放地址钉死 https://api.wwzu.com/media/news_audio/latest.mp3（服务端 residual.NEWS_MEDIA_LATEST 同源）。
+     URL 参数（client.py player / residual 命令拼装）：?hour=15点&titles=标题一‖标题二
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>残响频率 · 余烬电台</title>
+<style>
+  /* ---- 设计令牌：取值与官网 tokens.css 同源 ---- */
+  :root {
+    --primitive-color-ash-100: #E9ECEF;
+    --primitive-color-ash-300: #98A1AD;
+    --primitive-color-ash-400: #6B7280;
+    --primitive-color-ash-600: #2E333C;
+    --primitive-color-ash-700: #23272E;
+    --primitive-color-ash-800: #1A1D22;
+    --primitive-color-ash-850: #14161A;
+    --primitive-color-ash-900: #101215;
+    --primitive-color-ash-950: #0A0B0D;
+    --primitive-color-ash-1000: #060709;
+    --primitive-color-ember-300: #FFB680;
+    --primitive-color-ember-400: #FF9C52;
+    --primitive-color-ember-500: #FF7A2E;
+    --primitive-color-ember-600: #F05E12;
+    --primitive-color-ember-700: #C44A0C;
+    --primitive-color-ember-950: #2A1305;
+    --primitive-color-amber-400: #E8B54B;
+    --primitive-color-past-500: #7FA3BC;
+    --color-bg: var(--primitive-color-ash-950);
+    --color-bg-deep: var(--primitive-color-ash-1000);
+    --color-surface: var(--primitive-color-ash-900);
+    --color-surface-raised: var(--primitive-color-ash-850);
+    --color-fg: var(--primitive-color-ash-100);
+    --color-fg-muted: var(--primitive-color-ash-300);
+    --color-fg-subtle: var(--primitive-color-ash-400);
+    --color-primary: var(--primitive-color-ember-500);
+    --color-primary-hover: var(--primitive-color-ember-400);
+    --color-past: var(--primitive-color-past-500);
+    --color-border: var(--primitive-color-ash-700);
+    --color-border-subtle: var(--primitive-color-ash-800);
+    --font-sans: 'Noto Sans SC', -apple-system, 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Cascadia Mono', Consolas, 'Noto Sans SC', monospace;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.5rem;
+    --space-6: 2rem;
+    --space-8: 3rem;
+    --radius-card: 14px;
+    --radius-pill: 999px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    background:
+      radial-gradient(120% 60% at 50% -10%, var(--primitive-color-ember-950) 0%, transparent 60%),
+      var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    line-height: 1.7;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .wrap { width: min(680px, 92vw); padding: var(--space-8) 0 var(--space-6); }
+
+  .kicker {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.18em;
+    color: var(--color-fg-subtle);
+    text-transform: uppercase;
+    margin: 0 0 var(--space-2);
+  }
+  .kicker::before {
+    content: "";
+    display: inline-block;
+    width: 2.2em; height: 2px; vertical-align: middle;
+    margin-inline-end: var(--space-3);
+    background: linear-gradient(90deg, var(--color-primary), transparent);
+  }
+  h1 { font-size: 1.9rem; line-height: 1.3; margin: 0 0 var(--space-2); letter-spacing: 0.02em; }
+  h1 .accent { color: var(--color-primary); }
+  .lede { color: var(--color-fg-muted); margin: 0 0 var(--space-5); max-width: 34em; }
+
+  /* ---- 播放卡 ---- */
+  .console {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-card);
+    padding: var(--space-5) var(--space-5) var(--space-4);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+  }
+  /* 信号屏：收音机的示波窗——深黑底、细框、波形与状态灯都长在这块屏里 */
+  .screen {
+    position: relative;
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 10px;
+    padding: var(--space-3) var(--space-4) var(--space-2);
+    overflow: hidden;
+  }
+  .screen-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: var(--space-3); margin-bottom: var(--space-2);
+    font-family: var(--font-mono); font-size: 0.78rem; color: var(--color-fg-subtle);
+  }
+  .screen-head strong { color: var(--color-fg); font-weight: 600; letter-spacing: 0.06em; }
+  #wave { display: block; width: 100%; height: 80px; margin: 0; }
+  /* 播放旋钮叠在电波中央作前景：半透明实底压住波形，播放时发光 */
+  .screen-stage { position: relative; }
+  .screen-stage .play-btn {
+    position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: 58px; height: 58px; border-radius: 50%;
+    border: 1px solid var(--color-border);
+    background: rgba(16, 18, 21, 0.86);
+    color: var(--color-primary);
+    font-size: 1.3rem; line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .screen-stage .play-btn:hover {
+    border-color: var(--color-primary);
+    transform: translate(-50%, -50%) scale(1.06);
+    box-shadow: 0 6px 28px rgba(255, 122, 46, 0.25);
+  }
+  .screen-stage .play-btn:disabled { opacity: 0.6; cursor: wait; transform: translate(-50%, -50%); }
+  .screen-stage .play-btn.is-playing {
+    border-color: var(--color-primary);
+    color: var(--color-primary-hover);
+    box-shadow: 0 0 22px rgba(255, 122, 46, 0.35);
+  }
+  .screen-lamp {
+    position: absolute; right: var(--space-4); bottom: var(--space-3);
+    display: flex; align-items: center; gap: 6px;
+    font-family: var(--font-mono); font-size: 0.68rem; color: var(--color-fg-subtle);
+    pointer-events: none;
+  }
+  .lamp-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--color-fg-subtle); opacity: 0.45;
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+  }
+  .lamp-dot.is-on {
+    background: var(--color-primary); opacity: 1;
+    box-shadow: 0 0 10px var(--color-primary);
+    animation: lamp-breathe 1.6s ease-in-out infinite;
+  }
+  @keyframes lamp-breathe { 50% { opacity: 0.7; box-shadow: 0 0 3px var(--color-primary); } }
+  .status { min-width: 0; margin-top: var(--space-4); }
+  .status .now { font-size: 1.02rem; font-weight: 600; margin: 0 0 2px; }
+  .status .hint { font-size: 0.85rem; color: var(--color-fg-subtle); margin: 0; }
+  .status .hint.is-error { color: var(--color-primary); }
+
+  /* ---- 残响文本区 ---- */
+  .signal {
+    margin-top: var(--space-5);
+    background: var(--color-surface-raised);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-card);
+    padding: var(--space-5);
+  }
+  .signal .hour-line {
+    font-family: var(--font-mono); font-size: 0.85rem;
+    color: var(--color-fg-muted); margin: 0 0 var(--space-3);
+  }
+  .signal .hour-line b { color: var(--primitive-color-amber-400); font-weight: 600; }
+  .signal ol { margin: 0; padding-inline-start: 1.4em; color: var(--color-fg); }
+  .signal ol li { margin-bottom: var(--space-2); }
+  .signal ol li::marker { color: var(--color-primary); font-family: var(--font-mono); }
+  .signal .empty { color: var(--color-fg-subtle); font-size: 0.9rem; margin: 0; }
+
+  footer {
+    margin-top: var(--space-6);
+    font-size: 0.75rem; color: var(--color-fg-subtle);
+    text-align: center; line-height: 1.6;
+  }
+  footer .brand { color: var(--color-fg-muted); }
+  .ember-note { color: var(--primitive-color-ember-300); }
+  .site-link {
+    color: var(--color-fg-muted);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-color: var(--color-border);
+  }
+  .site-link:hover { color: var(--color-primary); text-decoration-color: var(--color-primary); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="kicker">FM 66.6 · RESIDUAL SIGNAL</p>
+  <h1>残响<span class="accent">频率</span></h1>
+  <p class="lede">每个整点，频段里会混进一段来路不明的清晰信号——播的是「长夜之前」的旧世界新闻。没人知道它从哪里来。</p>
+
+  <div class="console">
+    <div class="screen">
+      <div class="screen-head">
+        <strong>正在收听 · 整点存档</strong>
+        <span id="freq">FM 66.6</span>
+      </div>
+      <div class="screen-stage">
+        <canvas id="wave" aria-hidden="true"></canvas>
+        <button class="play-btn" id="play" aria-label="收听残响">▶</button>
+      </div>
+      <div class="screen-lamp"><i class="lamp-dot" id="lamp"></i><span id="lamp-text">待机</span></div>
+    </div>
+    <div class="status">
+      <p class="now" id="now-title">按下旋钮，收听这段信号</p>
+      <p class="hint" id="hint">存档来自城外的旧中继，放完即止。</p>
+    </div>
+  </div>
+
+  <div class="signal">
+    <p class="hour-line" id="hour-line">报时音——没人知道那是什么时候。</p>
+    <ol id="titles"></ol>
+    <p class="empty" id="no-titles" hidden>断续听到几句——内容会由你的助手转述给你。</p>
+  </div>
+
+  <footer>
+    <p>
+      <a class="site-link" href="https://game.wwzu.com" target="_blank" rel="noopener">余烬电台</a> · <span class="ember-note">长夜之前的声音</span><br>
+      
+    </p>
+  </footer>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+  /* ---- 报时音读法：与服务端 _hour_cn 同逻辑（15点→十五点） ---- */
+  const DIGITS = "零一二三四五六七八九";
+  const cnNum = (n) => {
+    if (n < 10) return DIGITS[n];
+    if (n < 20) return "十" + (n > 10 ? DIGITS[n - 10] : "");
+    const tens = Math.floor(n / 10), ones = n % 10;
+    return DIGITS[tens] + "十" + (ones ? DIGITS[ones] : "");
+  };
+
+  /* ---- URL 参数：hour / titles（client.py 拼装，‖ 分隔） ---- */
+  const params = new URLSearchParams(location.search);
+  const hourRaw = (params.get("hour") || "").trim();
+  const titlesRaw = (params.get("titles") || "").trim();
+  if (hourRaw) {
+    const m = hourRaw.match(/\d+/);
+    const n = m ? Number(m[0]) : NaN;
+    // 只认 0—99 的报时数字；其余原样转述（用 textContent 组装，查询参数不进 HTML）
+    const read = m && n >= 0 && n <= 99
+      ? cnNum(n) + hourRaw.slice(m.index + m[0].length)
+      : hourRaw;
+    const line = document.getElementById("hour-line");
+    const strong = document.createElement("b");
+    strong.textContent = read;
+    line.textContent = "";
+    line.append("报时音报的是「", strong, "」——没人知道那是什么时候。");
+  }
+  const listEl = document.getElementById("titles");
+  const emptyEl = document.getElementById("no-titles");
+  if (titlesRaw) {
+    for (const t of titlesRaw.split("‖").map((s) => s.trim()).filter(Boolean)) {
+      const li = document.createElement("li");
+      li.textContent = t;
+      listEl.appendChild(li);
+    }
+  }
+  if (!listEl.children.length) emptyEl.hidden = false;
+
+  /* ---- 电波与余烬（照官网 site.js 的波形画布，静态令牌取色） ---- */
+  const canvas = document.getElementById("wave");
+  const ctx = canvas.getContext("2d");
+  let W = 0, H = 0, t = 0, embers = [];
+  const pal = () => ({
+    ember: css("--primitive-color-ember-500"),
+    emberSoft: css("--primitive-color-ember-300"),
+    amber: css("--primitive-color-amber-400"),
+    past: css("--primitive-color-past-500"),
+  });
+  let P = pal();
+  const resize = () => {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = canvas.clientWidth; H = canvas.clientHeight;
+    canvas.width = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    embers = Array.from({ length: Math.min(20, Math.round(W / 36)) }, () => ({
+      x: Math.random() * W, y: H + Math.random() * H * 0.4,
+      r: 1 + Math.random() * 1.8, vy: 0.3 + Math.random() * 0.6,
+      sway: Math.random() * Math.PI * 2, hot: Math.random() > 0.7,
+    }));
+  };
+  const wave = (amp, freq, speed, yBase, color, alpha, width) => {
+    // 两侧渐隐：波形从屏边缘淡入淡出，不再是一条硬边横线
+    const g = ctx.createLinearGradient(0, 0, W, 0);
+    g.addColorStop(0, "rgba(0,0,0,0)");
+    g.addColorStop(0.14, color);
+    g.addColorStop(0.86, color);
+    g.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.beginPath();
+    for (let x = 0; x <= W; x += 4) {
+      const y = yBase + Math.sin(x * freq + t * speed) * amp +
+        Math.sin(x * freq * 2.7 + t * speed * 1.6) * amp * 0.35;
+      if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = g; ctx.globalAlpha = alpha; ctx.lineWidth = width; ctx.stroke();
+    ctx.globalAlpha = 1;
+  };
+  const frame = () => {
+    t += playing ? 0.022 : 0.01;
+    ctx.clearRect(0, 0, W, H);
+    // 信号强度包络：播放时主波随「呼吸」起伏，次波反向流动——示波屏的活信号
+    const breathe = playing ? 0.7 + 0.3 * Math.sin(t * 2.1) : 0.88;
+    wave(H * 0.32 * breathe, 0.011, playing ? 1.35 : 0.85, H * 0.55, P.ember, playing ? 0.85 : 0.5, 1.6);
+    wave(H * 0.2 * breathe, 0.017, -1.25, H * 0.5, P.emberSoft, 0.3, 1);
+    wave(H * 0.09, 0.006, 0.4, H * 0.74, P.past, 0.18, 1);
+    for (const e of embers) {
+      e.y -= e.vy; e.sway += 0.02; e.x += Math.sin(e.sway) * 0.3;
+      if (e.y < -8) { e.y = H + 8; e.x = Math.random() * W; }
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
+      ctx.fillStyle = e.hot ? P.amber : P.emberSoft;
+      ctx.globalAlpha = Math.max(0.12, 1 - e.y / H) * 0.5;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    requestAnimationFrame(frame);
+  };
+  resize();
+  window.addEventListener("resize", resize);
+  requestAnimationFrame(frame);
+
+  /* ---- 播放：本地合成静流开场（照官网调频的带通扫频）→ 播存档 ---- */
+  const AUDIO_URL = "https://api.wwzu.com/media/news_audio/latest.mp3";
+  const btn = document.getElementById("play");
+  const nowEl = document.getElementById("now-title");
+  const hintEl = document.getElementById("hint");
+  let audio = null, audioCtx = null;
+  let playing = false;
+
+  const setHint = (text, isError) => {
+    hintEl.textContent = text;
+    hintEl.classList.toggle("is-error", Boolean(isError));
+  };
+
+  /* ---- 信号屏状态灯：待机/调频/信号/暂停/断开/杂音 ---- */
+  const lampDot = document.getElementById("lamp");
+  const lampText = document.getElementById("lamp-text");
+  const setLamp = (on, text) => {
+    lampDot.classList.toggle("is-on", Boolean(on));
+    lampText.textContent = text;
+  };
+
+  const playStatic = (when) => {
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      audioCtx = audioCtx || new AC();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      const dur = 0.9;
+      const master = audioCtx.createGain();
+      master.gain.value = 0.1;
+      master.connect(audioCtx.destination);
+      const buf = audioCtx.createBuffer(1, Math.ceil(audioCtx.sampleRate * dur), audioCtx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = buf;
+      const bp = audioCtx.createBiquadFilter();
+      bp.type = "bandpass"; bp.Q.value = 1.2;
+      bp.frequency.setValueAtTime(400, when);
+      bp.frequency.exponentialRampToValueAtTime(2200, when + dur * 0.7);
+      bp.frequency.exponentialRampToValueAtTime(700, when + dur);
+      const nGain = audioCtx.createGain();
+      nGain.gain.setValueAtTime(0.9, when);
+      nGain.gain.exponentialRampToValueAtTime(0.1, when + dur);
+      noise.connect(bp); bp.connect(nGain); nGain.connect(master);
+      noise.start(when); noise.stop(when + dur);
+    } catch (err) { /* 音频不可用时静默跳过 */ }
+  };
+
+  const ensureAudio = () => {
+    if (audio) return audio;
+    audio = new Audio(AUDIO_URL);
+    audio.preload = "auto";
+    audio.addEventListener("waiting", () => { setHint("信号在调——稍等。", false); setLamp(true, "调频"); });
+    audio.addEventListener("playing", () => {
+      playing = true;
+      btn.textContent = "❚❚";
+      btn.classList.add("is-playing");
+      nowEl.textContent = "正在播报 · 旧世界新闻";
+      setHint("信号很稳——稳得不像这个年代的产物。", false);
+      setLamp(true, "信号");
+    });
+    audio.addEventListener("pause", () => {
+      playing = false;
+      btn.textContent = "▶";
+      btn.classList.remove("is-playing");
+      nowEl.textContent = "信号停在半空";
+      setHint("再按一次旋钮，接着听。", false);
+      setLamp(false, "暂停");
+    });
+    audio.addEventListener("ended", () => {
+      playing = false;
+      btn.textContent = "▶";
+      btn.classList.remove("is-playing");
+      nowEl.textContent = "——信号到此断开——";
+      setHint("下一段，要等下个整点。", false);
+      setLamp(false, "断开");
+    });
+    audio.addEventListener("error", () => {
+      playing = false;
+      btn.textContent = "▶";
+      nowEl.textContent = "频段里只有杂音";
+      setHint("这段存档暂时取不到——过一会儿再试。", true);
+      setLamp(false, "杂音");
+    });
+    return audio;
+  };
+
+  const toggle = () => {
+    const a = ensureAudio();
+    if (playing) { a.pause(); return; }
+    btn.disabled = true;
+    nowEl.textContent = "调频中……";
+    setLamp(true, "调频");
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) {
+        audioCtx = audioCtx || new AC();
+        if (audioCtx.state === "suspended") audioCtx.resume();
+        playStatic(audioCtx.currentTime);
+      }
+    } catch (err) { /* 静流失败不影响正片 */ }
+    setTimeout(() => {
+      btn.disabled = false;
+      a.play().catch(() => {
+        playing = false;
+        btn.disabled = false;
+        nowEl.textContent = "频段里只有杂音";
+        setHint("这段存档暂时取不到——过一会儿再试。", true);
+        setLamp(false, "杂音");
+      });
+    }, 850);
+  };
+  btn.addEventListener("click", toggle);
+})();
+</script>
+</body>
+</html>

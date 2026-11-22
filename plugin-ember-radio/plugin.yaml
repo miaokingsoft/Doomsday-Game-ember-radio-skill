@@ -1,0 +1,11 @@
+# 余烬电台 Octop 插件清单（skill 型壳）
+# version 由构建脚本 build_octop_plugin_zip.py 自动跟随技能包
+# skill-ember-radio/SKILL.md 的 version——不要在这里手工追版本。
+id: ember-radio
+version: 1.9.0
+kind: skill
+entry: main.py
+name: 余烬电台
+description: 末日共享世界《余烬电台》v2 闲沐市——11 个城区自由行动，每次尝试由服务端隐藏骰子判定；会受伤、会被抢、会倒下。安装后专家经技能包客户端接入游戏服务端。说「进入余烬电台」开始。
+icon: 📻
+group: games
